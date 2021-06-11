@@ -54,7 +54,7 @@ const autocrawler = require('autocrawler');
 ```
 
 ### Exemplo de resposta
-```json
+```javascript
 {
   car: { brand: 'Fiat', model: 'Punto' },
   list: [
