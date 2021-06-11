@@ -21,5 +21,12 @@
     "puppeteer-extra": "^3.1.18",
     "puppeteer-extra-plugin-stealth": "^2.7.8",
     "puppeteer-jquery": "^0.3.0"
-  }
+  },
+  "keywords": [
+    "nodejs",
+    "javascript",
+    "stand virtual",
+    "crawler",
+    "puppeteer"
+  ]
 }
