@@ -7,11 +7,12 @@ const StandVirtual = require('./crawlers/StandVirtual');
  * @constructor
  * @param {string} platform - The platform to crawl.
  * @param {string} car - The car attributes.
+ * @param {Object} filters - The search filters.
  */
-const autocrawler = (platform, car) => {
+const autocrawler = (platform, car, filters = {}) => {
 	return new Promise((resolve, reject) => {
 		if (platform.toLowerCase() === 'stand virtual') {
-			StandVirtual.run(car)
+			StandVirtual.run(car, filters)
 				.then((list) => {
 					resolve(list);
 				})

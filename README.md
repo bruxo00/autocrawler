@@ -18,14 +18,29 @@ yarn add autocrawler
 ## Como usar
 
 ```javascript
-autocrawler(platform, car);
+autocrawler(platform, car, filters);
 ```
 
 ```javascript
-platform: 'Stand Virtual | ...'
+platform: 'Stand Virtual | ...',
 car: {
 	brand: 'Car Brand',
-	model: 'Car Model' (optional)
+	model: 'Car Model', (optional)
+},
+filters: { (optional)
+  price: { 
+    from: 5000,
+    to: 10000
+  },
+  year: {
+    from: 2010,
+    to: 2015
+  },
+  km: {
+    from: 85000,
+    to: 100000,
+  },
+  fuel: 'diesel | electric | gaz | gpl | hibride-diesel | hibride-gaz'
 }
 ```
 
@@ -51,6 +66,19 @@ const autocrawler = require('autocrawler');
 
 	console.log(response);
 })();
+```
+
+#### Com Filtros
+```javascript
+const autocrawler = require('autocrawler');
+
+autocrawler('Stand Virtual', { brand: 'Fiat', model: 'Punto' }, { fuel: 'diesel', price: { to: 6500 } })
+	.then((response) => {
+		console.log(response);
+	})
+	.catch((error) => {
+		console.log(error);
+	});
 ```
 
 ### Exemplo de resposta
