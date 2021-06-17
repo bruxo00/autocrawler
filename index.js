@@ -2,6 +2,8 @@
 
 const StandVirtual = require('./crawlers/StandVirtual');
 
+let debugMode = false;
+
 /**
  * Autocrawler entry point
  * @constructor
@@ -12,7 +14,7 @@ const StandVirtual = require('./crawlers/StandVirtual');
 const autocrawler = (platform, car, filters = {}) => {
 	return new Promise((resolve, reject) => {
 		if (platform.toLowerCase() === 'stand virtual') {
-			StandVirtual.run(car, filters)
+			StandVirtual.run(car, filters, debugMode)
 				.then((list) => {
 					resolve(list);
 				})
@@ -25,4 +27,14 @@ const autocrawler = (platform, car, filters = {}) => {
 	});
 }
 
+/**
+ * Will toggle debug mode, which means it will disable Chrome headless mode.
+ * @constructor
+ * @param {Boolean} status - true | false
+ */
+const toggleDebug = (status) => {
+	debugMode = status;
+}
+
 module.exports = autocrawler;
+module.exports.toggleDebug = toggleDebug;

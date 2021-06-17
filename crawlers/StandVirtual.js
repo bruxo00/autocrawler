@@ -3,7 +3,7 @@ const stealth = require('puppeteer-extra-plugin-stealth');
 const puppeteerJQuery = require('puppeteer-jquery');
 
 module.exports = {
-	run: (car, filters = {}) => {
+	run: (car, filters = {}, debugMode = false) => {
 		return new Promise(async (resolve, reject) => {
 			const originalCar = { ...car };
 			const list = [];
@@ -22,8 +22,10 @@ module.exports = {
 					defaultViewport: {
 						width: 1920,
 						height: 1080,
-						deviceScaleFactor: 1
-					}
+						deviceScaleFactor: 1,
+					},
+					headless: !debugMode,
+					args: ['--start-maximized']
 				});
 
 				page = await browser.newPage();
@@ -118,6 +120,7 @@ module.exports = {
 
 				while (true) {
 					// waits for ads to load
+					await page.waitForjQuery('[data-testid="search-results"] > article > :nth-child(1):visible');
 					await page.waitForjQuery('[data-testid="search-results"] > article');
 
 					// gets all ads
@@ -134,7 +137,7 @@ module.exports = {
 
 						list.push({
 							name: await articles[i].$eval('div:nth-child(1) > [data-testid="ad-title"]', el => el.textContent?.trim()),
-							price: await articles[i].$eval('div:nth-child(3) > span', el => el.textContent?.trim()),
+							price: await articles[i].$eval('div:nth-child(3)', el => el.textContent?.trim()),
 							km: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(4)', el => el.textContent?.trim()),
 							fuel: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(1)', el => el.textContent?.trim()),
 							year: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(3)', el => el.textContent?.trim()),
@@ -147,6 +150,8 @@ module.exports = {
 
 					// checks if there is more pages, if yes, then go to the next one
 					if (hasMorePages) {
+						// hide the articles to be able to wait for the new ones in the next page
+						await page.jQuery('article').css('display', 'none');
 						await page.jQuery('[data-testid="pagination-step-forwards"]').click();
 					} else {
 						break;
