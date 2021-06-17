@@ -43,6 +43,9 @@ filters: { (optional)
   fuel: 'diesel | electric | gaz | gpl | hibride-diesel | hibride-gaz'
 }
 ```
+```javascript
+autocrawler.toggleDebug(false | true);
+```
 
 #### Com Promises
 ```javascript
