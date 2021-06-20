@@ -137,7 +137,7 @@ module.exports = {
 							selector: 'div:nth-child(1) > [data-testid="ad-title"]'
 						}, {
 							property: 'price',
-							selector: 'div:nth-child(3)'
+							selector: 'div:nth-child(3) > span'
 						}, {
 							property: 'km',
 							selector: 'div:nth-child(1) > div > :nth-child(2) > :nth-child(4)'
