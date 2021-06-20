@@ -131,16 +131,71 @@ module.exports = {
 
 					// get ads information on current page
 					for (let i = 0; i < articles.length; i++) {
+						// needs to be inside the loop because we might need to change the selectors individually
+						const selectors = [{
+							property: 'name',
+							selector: 'div:nth-child(1) > [data-testid="ad-title"]'
+						}, {
+							property: 'price',
+							selector: 'div:nth-child(3)'
+						}, {
+							property: 'km',
+							selector: 'div:nth-child(1) > div > :nth-child(2) > :nth-child(4)'
+						}, {
+							property: 'fuel',
+							selector: 'div:nth-child(1) > div > :nth-child(2) > :nth-child(1)'
+						}, {
+							property: 'year',
+							selector: 'div:nth-child(1) > div > :nth-child(2) > :nth-child(3)'
+						}, {
+							property: 'photo',
+							selector: 'div:nth-child(2) > span'
+						}];
+						let skipArticle = false;
 						const url = await articles[i].$eval('div:nth-child(1) > [data-testid="ad-title"] > a', el => el.getAttribute('href'));
 						let uid = url.split('-');
 						uid = uid[uid.length - 1].replace('.html', '').trim();
 
+						// checks if the article has the right structure
+						// this can happen if there are premium ads in the page
+						for (let s = 0; s < selectors.length; s++) {
+							let result = await articles[i].$(selectors[s].selector);
+
+							if (!result) {
+								if (selectors[s].property === 'photo') { // is a premium ad (different structure)
+									selectors[s].selector = 'div:nth-child(3) > div > div > div:nth-child(1) > div > div:nth-child(1) > a';
+
+									result = await articles[i].$(selectors[s].selector);
+
+									if (!result) {
+										skipArticle = true;
+									}
+								} else {
+									skipArticle = true;
+								}
+
+								if (skipArticle) {
+									if (debugMode) {
+										console.warn(`[AUTOCRAWLER] Skipping ${i} article on page ${pagesProcessed + 1}: can't find ${selectors[s].property} element`);
+									}
+
+									break;
+								}
+							}
+						}
+
+						// there is something wrong with the article, skip it
+						if (skipArticle) {
+							continue;
+						}
+
 						list.push({
-							name: await articles[i].$eval('div:nth-child(1) > [data-testid="ad-title"]', el => el.textContent?.trim()),
-							price: await articles[i].$eval('div:nth-child(3)', el => el.textContent?.trim()),
-							km: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(4)', el => el.textContent?.trim()),
-							fuel: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(1)', el => el.textContent?.trim()),
-							year: await articles[i].$eval('div:nth-child(1) > div > :nth-child(2) > :nth-child(3)', el => el.textContent?.trim()),
+							name: await articles[i].$eval(selectors.find(s => s.property === 'name').selector, el => el.textContent?.trim()),
+							price: await articles[i].$eval(selectors.find(s => s.property === 'price').selector, el => el.textContent?.trim()),
+							km: await articles[i].$eval(selectors.find(s => s.property === 'km').selector, el => el.textContent?.trim()),
+							fuel: await articles[i].$eval(selectors.find(s => s.property === 'fuel').selector, el => el.textContent?.trim()),
+							year: await articles[i].$eval(selectors.find(s => s.property === 'year').selector, el => el.textContent?.trim()),
+							photo: await articles[i].$eval(selectors.find(s => s.property === 'photo').selector, el => el.getElementsByTagName('img')[0]?.src),
 							url: url,
 							uid: uid
 						});
