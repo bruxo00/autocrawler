@@ -123,6 +123,16 @@ module.exports = {
 					await page.waitForjQuery('[data-testid="search-results"] > article > :nth-child(1):visible');
 					await page.waitForjQuery('[data-testid="search-results"] > article');
 
+					// check if there are too many ads, in that case, the brand or model are invalid
+					if (pagesProcessed === 0) {
+						const resultsElementText = await page.jQuery('[data-testid="results-heading"]').text();
+						const numberOfAds = parseInt(resultsElementText.match(/\d+/g).join(''));
+
+						if (numberOfAds > 5000) {
+							throw 'invalid_search';
+						}
+					}
+
 					// gets all ads
 					let articles = await page.jQuery('[data-testid="search-results"] > article');
 
@@ -162,14 +172,13 @@ module.exports = {
 							let result = await articles[i].$(selectors[s].selector);
 
 							if (!result) {
-								if (selectors[s].property === 'photo') { // is a premium ad (different structure)
+								// check if is a premium ad (different structure)
+								if (selectors[s].property === 'photo') { 
 									selectors[s].selector = 'div:nth-child(3) > div > div > div:nth-child(1) > div > div:nth-child(1) > a';
-
-									result = await articles[i].$(selectors[s].selector);
-
-									if (!result) {
-										skipArticle = true;
-									}
+									skipArticle = (await articles[i].$(selectors[s].selector)) ? false : true;
+								} else if (selectors[s].property === 'price') {
+									selectors[s].selector = 'div:nth-child(4) > span';
+									skipArticle = (await articles[i].$(selectors[s].selector)) ? false : true;
 								} else {
 									skipArticle = true;
 								}
