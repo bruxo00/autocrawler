@@ -3,22 +3,19 @@ const stealth = require('puppeteer-extra-plugin-stealth');
 const puppeteerJQuery = require('puppeteer-jquery');
 
 module.exports = {
-	run: (car, filters = {}, debugMode = false) => {
+	// method that will build the url with brand, model and filters
+	// for some reason some models have different query structure
+	getPageUrl: (car, filters, debugMode = false) => {
 		return new Promise(async (resolve, reject) => {
-			const originalCar = { ...car };
-			const list = [];
-			let page;
-			let browser;
-
-			// convets brand and model to normalized form
-			// ex: Citroën C4 Picasso -> citroen c4-picasso
-			car.brand = car.brand.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(' ', '-').trim();
-			car.model = car.model.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(' ', '-').trim();
-
 			try {
+				// convets brand and model to normalized form
+				// ex: Citroën C4 Picasso -> citroen c4-picasso
+				car.brand = car.brand.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(' ', '-').trim();
+				car.model = car.model.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(' ', '-').trim();
+
 				puppeteer.use(stealth());
 
-				browser = await puppeteer.launch({
+				const browser = await puppeteer.launch({
 					defaultViewport: {
 						width: 1920,
 						height: 1080,
@@ -28,14 +25,23 @@ module.exports = {
 					args: ['--start-maximized']
 				});
 
-				page = await browser.newPage();
-
-				const modelString = car.model ? `/${car.model}` : '';
+				let page = await browser.newPage();
+				let modelString = car.model ? `/${car.model}` : '';
 				let filtersString = '';
+				let fromString = null;
+
+				await page.goto(`https://standvirtual.com/carros/${car.brand}${modelString}`, { waitUntil: 'networkidle2' });
+				page = puppeteerJQuery.pageExtend(page);
+				const model = await page.jQuery('[placeholder="Modelo"]').val();
+
+				// if the model input is empty it means that the query is wrong, so we rebuild the query with the correct structure
+				if (!model) {
+					modelString = car.model ? `?search[filter_enum_engine_code]=${car.model}` : '';
+				} else {
+					filtersString = '?';
+				}
 
 				if (filters) {
-					filtersString += '?';
-
 					if (filters.price) {
 						if (filters.price.from && filters.price.to && filters.price.from >= filters.price.to) {
 							reject('Invalid price filters: \'to\' needs to be higher than \'from\'');
@@ -58,7 +64,7 @@ module.exports = {
 						}
 
 						if (filters.year.from) {
-							filtersString = `/desde-${filters.year.from}` + filtersString; // I want to congratulate Stand Virtual Devs :D
+							fromString = `/desde-${filters.year.from}`; // I want to congratulate Stand Virtual Devs :D
 						}
 
 						if (filters.year.to) {
@@ -93,11 +99,54 @@ module.exports = {
 					}
 				}
 
-				// adds the & to all but the first search
-				filtersString = filtersString.replace(/search/g, '&search');
-				filtersString = filtersString.replace('&search', 'search');
+				let url;
 
-				await page.goto(`https://standvirtual.com/carros/${car.brand}${modelString}${filtersString}`, { waitUntil: 'networkidle2' });
+				if (fromString) {
+					if (model) {
+						url = `https://standvirtual.com/carros/${car.brand}${modelString}${fromString}${filtersString !== '?' ? filtersString : ''}`;
+					} else {
+						url = `https://standvirtual.com/carros/${car.brand}${fromString}${modelString}${filtersString !== '?' ? filtersString : ''}`;
+					}
+				} else {
+					url = `https://standvirtual.com/carros/${car.brand}${modelString}${filtersString !== '?' ? filtersString : ''}`;
+				}
+
+				// adds the & to all but the first search
+				url = url.replace(/search/g, '&search');
+				url = url.replace('&search', 'search');
+
+				await browser.close();
+
+				resolve(url);
+			} catch (error) {
+				reject(error);
+			}
+		});
+	},
+	run: (car, filters = {}, debugMode = false) => {
+		return new Promise(async (resolve, reject) => {
+			const originalCar = { ...car };
+			const list = [];
+			let page;
+			let browser;
+			const pageUrl = await module.exports.getPageUrl(car, filters, debugMode);
+
+			try {
+				puppeteer.use(stealth());
+
+				browser = await puppeteer.launch({
+					defaultViewport: {
+						width: 1920,
+						height: 1080,
+						deviceScaleFactor: 1,
+					},
+					headless: !debugMode,
+					args: ['--start-maximized']
+				});
+
+				page = await browser.newPage();
+
+				await page.goto(`${pageUrl}`, { waitUntil: 'networkidle2' });
 
 				// injects jquery
 				page = puppeteerJQuery.pageExtend(page);
@@ -173,7 +222,7 @@ module.exports = {
 
 							if (!result) {
 								// check if is a premium ad (different structure)
-								if (selectors[s].property === 'photo') { 
+								if (selectors[s].property === 'photo') {
 									selectors[s].selector = 'div:nth-child(3) > div > div > div:nth-child(1) > div > div:nth-child(1) > a';
 									skipArticle = (await articles[i].$(selectors[s].selector)) ? false : true;
 								} else if (selectors[s].property === 'price') {
