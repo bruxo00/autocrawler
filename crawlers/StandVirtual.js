@@ -22,7 +22,7 @@ module.exports = {
 						deviceScaleFactor: 1,
 					},
 					headless: !debugMode,
-					args: ['--start-maximized']
+					args: ['--no-sandbox']
 				});
 
 				let page = await browser.newPage();
@@ -141,7 +141,7 @@ module.exports = {
 						deviceScaleFactor: 1,
 					},
 					headless: !debugMode,
-					args: ['--start-maximized']
+					args: ['--no-sandbox']
 				});
 
 				page = await browser.newPage();
